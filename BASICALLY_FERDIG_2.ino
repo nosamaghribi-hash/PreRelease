@@ -6,10 +6,14 @@ const uint8_t PIR_PIN = 2;
 const uint8_t LED_DATA_PIN = 3;
 const uint8_t BUTTON1_PIN = 5; // System on/off
 const uint8_t BUTTON2_PIN = 4; // kort trykk = farge, hold = modus
+const uint8_t POT_PIN = A0;    // Potensiometer
 const uint8_t NUM_LEDS = 5;
 
 const unsigned long DEBOUNCE_MS = 50;
 const unsigned long LONG_PRESS_MS = 2000;
+int potVerdi = 0;
+unsigned long hastighet = 500;
+
 
 CRGB leds[NUM_LEDS];
 RTC_DS3231 rtc; 
@@ -55,6 +59,7 @@ bool lysPaa = false;
 
 // REGNBUE
 uint8_t hue = 0;
+unsigned long forrigeRegnbue = 0;
 
 // TEMPERATUR
 unsigned long forrigeTemperatur = 0;
@@ -210,10 +215,15 @@ void setup() {
   Serial.println("System startet");
   Serial.println("Modus 0: Statisk");
   Serial.println("Farge: grønn");
+  Serial.println("Potensiometer styrer hastighet");
 }
 
 
 void loop() {
+
+  //POTENSIOMETER 
+   potVerdi = analogRead(POT_PIN);
+   hastighet = map(potVerdi, 0,1023,50,1000);
 
   // KNAPP 1 - SYSTEM AV/PÅ
 
@@ -251,7 +261,7 @@ void loop() {
       // Gå til neste modus
       modus++;
 
-      // Etter modus 2 går vi tilbake til modus 0
+      // Etter modus 3 går vi tilbake til modus 0
       if (modus > 3) {
         modus = 0;
       }
@@ -347,7 +357,7 @@ farge++;
       // MODUS 1 - BLINK
       else if (modus == 1) {
 
-        if (millis() - forrigeBlink >= 500) {
+        if (millis() - forrigeBlink >= hastighet) {
 
           forrigeBlink = millis();
 
@@ -367,6 +377,11 @@ farge++;
       // MODUS 2 - REGNBUE
       else if (modus == 2) {
 
+        if (millis() - forrigeRegnbue >= hastighet){ 
+          forrigeRegnbue = millis();
+
+          hue++;
+        }
         for (uint8_t i = 0; i < NUM_LEDS; ++i) {
 
           leds[i] =
@@ -374,10 +389,6 @@ farge++;
         }
 
         FastLED.show();
-
-        hue++;
-
-        delay(20);
 
         // Vi har allerede vist regnbuen
         // så vi hopper over vanlig outputColor
